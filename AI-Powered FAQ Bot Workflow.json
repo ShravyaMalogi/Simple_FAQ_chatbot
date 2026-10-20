@@ -1,0 +1,218 @@
+{
+  "name": "AI-Powered FAQ Bot Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "You are the customer support assistant for Thread & Co.,\na fictional online fashion store.\n\nYour job is to answer customer questions politely,\nclearly, and concisely.\n\nFollow these rules:\n1. Use only the business information provided to you.\n2. Never invent product prices, stock availability,\n   delivery dates, discounts, or store policies.\n3. If you do not know the answer, say so honestly.\n4. For questions about orders, explain that this demo\n   is not connected to live order tracking.\n5. Never claim to have processed a payment, refund,\n   cancellation, or order change.\n6. Keep your tone friendly and professional.\n7. If a question is outside your knowledge, recommend\n   contacting the store's support team.\n\n\nFAQ DATABASE RULES:\n\n- Before answering a customer question, use the\n  connected Google Sheets tool to retrieve the FAQ data.\n- Base your answer on the information returned by the tool.\n- If the FAQ data does not contain the answer, say that\n  you do not have that information.\n- Never invent prices, delivery dates, product availability,\n  discounts, or business policies.\n- Do not claim that you checked an order or processed\n  a refund.\n- Keep responses friendly, concise, and professional."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        176,
+        0
+      ],
+      "id": "aac5c5d2-dc35-4b6a-85de-44d58ce308b3",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.2,
+      "position": [
+        112,
+        272
+      ],
+      "id": "fa3ee7fe-16a7-457c-bea2-24fbabb5d380",
+      "name": "Google Gemini Chat Model"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use this tool to retrieve Thread & Co.'s FAQ information from Google Sheets before answering customer questions. Base answers on the retrieved information and do not invent store policies.",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/REPLACE_WITH_YOUR_GOOGLE_SHEET_ID/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        368,
+        256
+      ],
+      "id": "1f39bd75-f9c4-446e-8641-3528e634fa12",
+      "name": "Retrieve FAQ Knowledge Base"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_GOOGLE_SHEET_ID",
+          "mode": "list",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/REPLACE_WITH_YOUR_GOOGLE_SHEET_ID/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1369309360,
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ $now.toISO() }}",
+            "User ID": "={{ $('Customer Chat Trigger').item.json.sessionId }}",
+            "User Question": "={{ $('Customer Chat Trigger').item.json.chatInput }}",
+            "Bot Response": "={{ $('AI Agent').item.json.output }}",
+            "Response Source": "AI Agent + FAQ lookup"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "User ID",
+              "displayName": "User ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "User Question",
+              "displayName": "User Question",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Bot Response",
+              "displayName": "Bot Response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Response Source",
+              "displayName": "Response Source",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        544,
+        0
+      ],
+      "id": "940b5e24-2ef7-4f55-ac64-bb3ab30200a9",
+      "name": "Log Customer Conversations",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "public": true,
+        "mode": "webhook",
+        "options": {
+          "responseMode": "streaming"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        16,
+        0
+      ],
+      "id": "ac9701b7-2793-4e47-b7e7-ccb0acf3f714",
+      "name": "Customer Chat Trigger"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Log Customer Conversations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retrieve FAQ Knowledge Base": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Customer Chat Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "nodeGroups": [],
+  "tags": []
+}
